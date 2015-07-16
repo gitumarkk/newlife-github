@@ -10,14 +10,6 @@ App.urls = {
 
 App.GithubIssuesModel = Backbone.Model.extend({
     urlRoot: "https://api.github.com/repos/newlif/teams/issues",
-    // initialize: function(options) {
-    //     var self = this;
-    //     return self;
-    // },
-    // url: function() {
-    //     var self = this;
-    //     return self.instanceUrl;
-    // },
 });
 
 App.GithubIssuesCollection = Backbone.Collection.extend({
@@ -74,10 +66,6 @@ App.GithubCommentsCollection = Backbone.Collection.extend({
         var self = this;
         return self.instanceUrl;
     }
-    // comparator: function(m) {
-    //     var self = this;
-    //     return Date.parse(m.get("milestone").due_on);
-    // }
 });
 
 
