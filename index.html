@@ -40,19 +40,44 @@
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
         <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.2.1/backbone-min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>
         <script src="js/app.js"></script>
 
         <script type="text/template" id="github-issues-template">
             <ul class="list-group">
                 <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Due on</th>
+                            <th>Photo</th>
+                            <th>Comments</th>
+                            <th>View</th>
+                            <th>View In Github</th>
+                        </tr>
+                    </thead>
                     <tbody>
                         <% _.each(issues, function(issue) { %>
                             <tr>
                                 <td><%= issue.title %></td>
+                                <td><%= moment(issue.milestone.due_on).format('LL') %></td>
                                 <td>
                                     <% if (issue.assignee) { %>
                                         <img src="<%= issue.assignee.avatar_url %>" alt="" height="50px;">
                                     <% } %>
+                                </td>
+                                <td><%= issue.comments %></td>
+                                <td>
+                                    <a href="#"
+                                        class="btn btn-primary btn-sm view-issue"
+                                        role="button"
+                                        data-comments-url="<%= issue.comments_url %>">View</a>
+                                </td>
+                                <td>
+                                    <a href="<%= issue.html_url %>"
+                                        class="btn btn-primary btn-sm"
+                                        role="button"
+                                        target="_blank">In Github</a>
                                 </td>
                             </tr>
                         <% }); %>
@@ -60,6 +85,36 @@
                 </table>
 
             </ul>
+        </script>
+
+        <script type="text/template" id="github-issue-comments-template">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Issue Title</th>
+                        <th>Comment</th>
+                        <th>Created at</th>
+                        <th>Created By</th>
+                        <th>View on Github</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% _.each(comments, function(comment) { %>
+                        <tr>
+                            <td><%= comment.issue_title %></td>
+                            <td><%= comment.body %></td>
+                            <td><%= moment(comment.created_at).fromNow() %></td>
+                            <td><%= comment.user.login %></td>
+                            <td>
+                                <a href="<%= comment.html_url %>"
+                                    class="btn btn-primary btn-sm"
+                                    role="button"
+                                    target="_blank">View On Github</a>
+                            </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
         </script>
     </body>
 </html>
