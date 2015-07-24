@@ -87,6 +87,25 @@
             </ul>
         </script>
 
+        <script type="text/template" id="github-milestones-template">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><%= milestone %></h3>
+                </div>
+                <div class="panel-body">
+                    <% _.each(data, function(data_value, dk) { %>
+                        <ul>
+                            <li><%= dk %></li>
+                            <% _.each(data_value, function(issues_value, dk) { %>
+                                <li><%= issues_value.attributes.title %></li>
+                                <li><img src="<%= issues_value.attributes.assignee.avatar_url %>" alt="" height="50px;"></li>
+                             <% }); %>
+                        </ul>
+                    <% }); %>
+                </div>
+            </div>
+        </script>
+
         <script type="text/template" id="github-issue-comments-template">
             <table class="table table-striped">
                 <thead>

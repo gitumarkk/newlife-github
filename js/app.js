@@ -20,25 +20,72 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
         return Date.parse(m.get("milestone").due_on);
     },
 
-    git_labels: function() {
-        var self = this,
-            models = self.models;
-        var labels = _.flatten(_.map(self.models, function (item) {
+    helper_labels: function(model_items) {
+        var self = this;
+        // flatten transforms  [[1], [2]] to [1, 2]
+        var labels = _.flatten(_.map(model_items, function (item) {
             return item.attributes.labels;
         }));
         return _.sortBy(_.uniq(labels, function(item) { return item.name; }), "name");
     },
+
+    /**
+    * Abstracts filtering model by label
+    * @params {object} model -  the model instanc the collection
+    * @params {string} label - the label to be compared
+    * @returns {boolean} - Does model have the labels
+    */
+    helper_filter_label: function(model, label) {
+        var self = this;
+        var labels = _.map(_.flatten(model.get("labels")), function(item) {
+            return item.name;
+        });
+        return labels.indexOf(label) !== -1;
+    },
+
+    git_labels: function() {
+        var self = this;
+        return self.helper_labels(self.models);
+    },
+
     getCollectionLabel: function(label) {
         var self = this;
         var filteredCollection = this.filter(function(model) {
-            var labels = _.map(_.flatten(model.get("labels")), function(item) {
-                return item.name;
-            });
-            return labels.indexOf(label) !== -1;
+            return self.helper_filter_label(model, label);
         });
         return _.map(filteredCollection, function(model) {
             return model.attributes;
         });
+    },
+
+    groupByMilestones: function() {
+        var self = this,
+            models = self.models,
+
+            // Grouping the models by the milestone title
+            grouped =  _.groupBy(models, function(model) {
+                return model.attributes.milestone.title;
+            });
+
+            // Grouping the labels in each milestone by the label title
+            new_group = _.map(grouped, function(grouped_models, key) {
+                var temp_value,
+                    output_dict = {},
+                    grouped_label_dict = {},
+                    labels = self.git_labels();
+
+                // For each label filter the models according to the label and add the label as a key
+                // to the output dictionary
+                _.each(labels, function(label) {
+                    grouped_label_dict[label.name] = _.filter(grouped_models, function(model) {
+                        return self.helper_filter_label(model, label.name);
+                    });
+                });
+                output_dict["milestone"] = key;
+                output_dict["data"] = grouped_label_dict;
+                return output_dict;
+            });
+            return new_group;
     }
 });
 
@@ -89,6 +136,8 @@ App.AppView = Backbone.View.extend({
 
         self.issues_template = _.template($("#github-issues-template").html());
         self.comments_template = _.template($("#github-issue-comments-template").html());
+        self.milestones_template = _.template($("#github-milestones-template").html());
+
         self.git_collection.fetch({
             success: self.render,
             error: self.gitFetchError
@@ -102,17 +151,22 @@ App.AppView = Backbone.View.extend({
     */
     render: function() {
         var self = this,
-            labels = self.git_collection.git_labels();
+            labels = self.git_collection.git_labels(),
+            milestones = self.git_collection.groupByMilestones();
 
-        _.each(labels, function(label) {
-            self.$("#issues-nav").append(
-                '<li role="presentation" class="issues-nav"><a data-label="' + label.name +
-                '" href="#">' + label.name + '</a></li>');
+        // _.each(labels, function(label) {
+        //     self.$("#issues-nav").append(
+        //         '<li role="presentation" class="issues-nav"><a data-label="' + label.name +
+        //         '" href="#">' + label.name + '</a></li>');
+        // });
+
+        // self.$("#workspace-items").html(self.issues_template({
+        //     issues: self.git_collection.toJSON()
+        // }));
+
+        _.each(milestones, function(value, key) {
+            self.$("#workspace-items").append(self.milestones_template(value));
         });
-
-        self.$("#workspace-items").html(self.issues_template({
-            issues: self.git_collection.toJSON()
-        }));
     },
 
     renderLabel: function(ev) {
@@ -163,6 +217,12 @@ App.AppView = Backbone.View.extend({
         });
 
         self.$("#workspace-items").html(self.comments_template({comments: comments}));
+    },
+
+    renderGroupByMilestones: function() {
+        var self = this,
+            milestone_col = self.git_collection.groupByMilestones();
+
     },
 
     gitFetchError: function(response, options, status) {
