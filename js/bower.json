@@ -1,0 +1,26 @@
+{
+  "name": "js",
+  "version": "0.0.1",
+  "homepage": "https://github.com/gitumarkk/newlife-github",
+  "authors": [
+    "Mark Gituma <gitumarkk@gmail.com>"
+  ],
+  "description": "Newlife javascript dependencies",
+  "main": "bower",
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.4"
+  },
+  "devDependencies": {
+    "backbone": "~1.2.1",
+    "bootstrap": "~3.3.5",
+    "moment": "~2.10.3"
+  }
+}
