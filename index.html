@@ -24,21 +24,14 @@
                 <div class="col-lg-12">
                     <ul id="main-nav" class="nav nav-tabs">
                         <li role="presentation" class="main-nav col-lg-6">
-                            <a href="#" data-label="default" class="active">Week</a>
+                            <a id="week-view" href="#" data-label="default" class="active">Week</a>
                         </li>
                         <li role="presentation" class="main-nav col-lg-6">
-                            <a href="#" data-label="default" class="">Duties</a>
+                            <a id="label-view" href="#" data-label="default" class="">Duties</a>
                         </li>
                     </ul>
 
-                    <!-- <ul id="issues-nav" class="nav nav-tabs">
-                        <li role="presentation" class="issues-nav">
-                            <a href="#" data-label="default" class="active">overall</a>
-                        </li>
-                    </ul> -->
-                    <div id="workspace-items" class="container">
-
-                    </div>
+                    <div id="workspace-items" class="container"></div>
                 </div>
             </div>
         </div>
@@ -53,6 +46,17 @@
         <script src="js/app.js"></script>
 
         <script type="text/template" id="github-issues-template">
+            <ul id="issues-nav" class="nav nav-tabs">
+               <li role="presentation" class="issues-nav">
+                   <a href="#" data-label="default" class="active">Overall</a>
+                   <% _.each(labels, function(label) { %>
+                        <li role="presentation" class="issues-nav">
+                            <a data-label="<%= label.name %>" href="#"><%= label.name %></a>
+                        </li>
+                   <% }); %>
+               </li>
+           </ul>
+
             <ul class="list-group">
                 <table class="table table-striped">
                     <thead>
@@ -61,7 +65,7 @@
                             <th>Due on</th>
                             <th>Photo</th>
                             <th>Comments</th>
-                            <th>View</th>
+                            <th>View Comments</th>
                             <th>View In Github</th>
                         </tr>
                     </thead>
@@ -77,10 +81,12 @@
                                 </td>
                                 <td><%= issue.comments %></td>
                                 <td>
-                                    <a href="#"
-                                        class="btn btn-primary btn-sm view-issue"
-                                        role="button"
-                                        data-comments-url="<%= issue.comments_url %>">View</a>
+                                    <% if (issue.comments !== 0) { %>
+                                        <a href="#"
+                                            class="btn btn-primary btn-sm view-issue"
+                                            role="button"
+                                            data-comments-url="<%= issue.comments_url %>">View</a>
+                                    <% } %>
                                 </td>
                                 <td>
                                     <a href="<%= issue.html_url %>"
@@ -97,19 +103,33 @@
         </script>
 
         <script type="text/template" id="github-milestones-template">
-            <div class="panel panel-default">
+            <div class="panel panel-success">
                 <div class="panel-heading">
                     <h3 class="panel-title"><%= milestone %></h3>
                 </div>
                 <div class="panel-body">
                     <% _.each(data, function(data_value, dk) { %>
-                        <h3><%= dk %></h3>
-                        <% _.each(data_value, function(issues_value, dk) { %>
-                            <div class="col-lg-4">
-                                <li><%= issues_value.attributes.title %></li>
-                                <li><img src="<%= issues_value.attributes.assignee.avatar_url %>" alt="" height="50px;"></li>
+                        <div class="col-lg-4">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title"><%= dk %></h4>
+                                </div>
+
+                                <div class="panel-body">
+                                    <% _.each(data_value, function(issues_value, dk) { %>
+                                        <div class="row">
+                                            <div class="col-lg-6">
+                                                <%= issues_value.attributes.title %>
+                                            </div>
+
+                                            <div class="col-lg-6">
+                                                <img src="<%= issues_value.attributes.assignee.avatar_url %>" alt="" height="50px;">
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
                             </div>
-                        <% }); %>
+                        </div>
                     <% }); %>
                 </div>
             </div>

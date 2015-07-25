@@ -77,9 +77,13 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
                 // For each label filter the models according to the label and add the label as a key
                 // to the output dictionary
                 _.each(labels, function(label) {
-                    grouped_label_dict[label.name] = _.filter(grouped_models, function(model) {
+                    var filtered_labels = _.filter(grouped_models, function(model) {
                         return self.helper_filter_label(model, label.name);
                     });
+
+                    if (filtered_labels.length !== 0) {
+                        grouped_label_dict[label.name] = filtered_labels;
+                    }
                 });
                 output_dict["milestone"] = key;
                 output_dict["data"] = grouped_label_dict;
@@ -118,79 +122,103 @@ App.GithubCommentsCollection = Backbone.Collection.extend({
 
 App.AppView = Backbone.View.extend({
     el: "#workspace",
-    git_collection: new App.GithubIssuesCollection(),
     git_comment_collection: undefined,
     events: {
-        "click .issues-nav a": "renderLabel",
-        "click .view-issue": "viewIssue"
+        "click .issues-nav a": "navigateLabelDetail",
+        "click .view-issue": "viewIssueComment",
+        "click #week-view": "navigateWeek",
+        "click #label-view": "navigateLabel"
     },
     initialize: function(options) {
         var self = this;
         _.bindAll(
             self,
-            "render",
-            "renderLabel",
-            "viewIssue",
+            "renderLabels",
+            "renderLabelDetail",
+            "viewIssueComment",
             "renderComments",
             "gitFetchError");
-
+        self.git_collection = options.git_collection;
         self.issues_template = _.template($("#github-issues-template").html());
         self.comments_template = _.template($("#github-issue-comments-template").html());
         self.milestones_template = _.template($("#github-milestones-template").html());
-
-        self.git_collection.fetch({
-            success: self.render,
-            error: self.gitFetchError
-        });
-
         return this;
     },
-    /**
-    * Rendering the main workspace view and populating labels. Also renders
-    * overall issues
-    */
-    render: function() {
+
+    navigateWeek: function(ev) {
+        ev.preventDefault();
+
+        var self = this;
+        Backbone.history.navigate("", {trigger: true});
+    },
+
+    navigateLabel: function(ev) {
+        ev.preventDefault();
+
+        var self = this;
+        Backbone.history.navigate("labels/", {trigger: true});
+    },
+
+    navigateLabelDetail: function(ev) {
+        ev.preventDefault();
+
         var self = this,
-            labels = self.git_collection.git_labels(),
+            $element = $(ev.currentTarget),
+            label = $element.data("label");
+
+        if (label === "default") {
+            Backbone.history.navigate("labels/", {trigger: true});
+        } else {
+            Backbone.history.navigate("labels/" + label + "/", {trigger: true});
+        }
+
+    },
+
+    renderBaseView: function() {
+        var self = this,
             milestones = self.git_collection.groupByMilestones();
 
-        // _.each(labels, function(label) {
-        //     self.$("#issues-nav").append(
-        //         '<li role="presentation" class="issues-nav"><a data-label="' + label.name +
-        //         '" href="#">' + label.name + '</a></li>');
-        // });
-
-        // self.$("#workspace-items").html(self.issues_template({
-        //     issues: self.git_collection.toJSON()
-        // }));
-
+        self.$("#workspace-items").html("");
         _.each(milestones, function(value, key) {
             self.$("#workspace-items").append(self.milestones_template(value));
         });
     },
 
-    renderLabel: function(ev) {
+    /**
+    * Rendering the main workspace view and populating labels. Also renders
+    * overall issues
+    */
+    renderLabels: function() {
         var self = this,
-            $element = $(ev.currentTarget),
-            label = $element.data("label");
+            labels = self.git_collection.git_labels();
+
+        self.$("#workspace-items").html(self.issues_template({
+            issues: self.git_collection.toJSON(),
+            labels: labels
+        }));
+    },
+
+    renderLabelDetail: function(label) {
+        var self = this,
+            labels = self.git_collection.git_labels();
 
         self.$("#issue-nav li").removeClass("active");
 
-        ev.preventDefault();
-
         if (label === "default") {
             self.$("#workspace-items").html(self.issues_template({
-                issues: self.git_collection.toJSON()
+                issues: self.git_collection.toJSON(),
+                labels: labels
             }));
         } else {
             self.$("#workspace-items").html(self.issues_template({
-                issues: self.git_collection.getCollectionLabel(label)
+                issues: self.git_collection.getCollectionLabel(label),
+                labels: labels
             }));
         }
-        $element.addClass("active");
+        // $element.addClass("active");
     },
 
-    viewIssue: function(ev) {
+    viewIssueComment: function(ev) {
         var self = this, $element;
         ev.preventDefault();
         $element = $(ev.currentTarget);
@@ -219,12 +247,6 @@ App.AppView = Backbone.View.extend({
         self.$("#workspace-items").html(self.comments_template({comments: comments}));
     },
 
-    renderGroupByMilestones: function() {
-        var self = this,
-            milestone_col = self.git_collection.groupByMilestones();
-
-    },
-
     gitFetchError: function(response, options, status) {
         var self = this;
         console.error(response, options);
@@ -234,6 +256,66 @@ App.AppView = Backbone.View.extend({
     },
 });
 
+App.AppRouter = Backbone.Router.extend({
+    routes: {
+        "": "renderBaseView",
+        "labels/": "renderLabels",
+        "labels/:label/": "renderLabelDetail"
+    },
+    initialize: function(options) {
+        var self = this;
+        self.collection_fetched = undefined;
+        self.git_collection = new App.GithubIssuesCollection();
+        self.fetch_collection = self.git_collection.fetch();
+
+        self.app = new App.AppView({
+            git_collection: self.git_collection
+        });
+    },
+
+    renderBaseView: function() {
+        var self = this;
+
+        if (self.collection_fetched) {
+            self.app.renderBaseView();
+        } else {
+            self.fetch_collection.done(function() {
+                self.app.renderBaseView();
+                self.collection_fetched = true;
+            });
+        }
+    },
+
+    renderLabels: function() {
+        var self = this;
+
+        if (self.collection_fetched) {
+            self.app.renderLabels();
+        } else {
+            self.fetch_collection.done(function() {
+                self.app.renderLabels();
+                self.collection_fetched = true;
+            });
+        }
+    },
+
+    renderLabelDetail: function(label) {
+        var self = this;
+
+        if (self.collection_fetched) {
+            self.app.renderLabelDetail(label);
+        } else {
+            self.fetch_collection.done(function() {
+                self.app.renderLabelDetail(label);
+                self.collection_fetched = true;
+            });
+        }
+    }
+});
+
+
 $(document).ready(function() {
-    new App.AppView({});
+    // new App.AppView({});
+    new App.AppRouter({});
+    Backbone.history.start({pushstate: true});
 });
