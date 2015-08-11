@@ -50,6 +50,10 @@
         <script src="js/bower_components/underscore/underscore-min.js"></script>
         <script src="js/bower_components/backbone/backbone-min.js"></script>
         <script src="js/bower_components/moment/min/moment.min.js"></script>
+        <script src="js/bower_components/masonry/dist/masonry.pkgd.min.js"></script>
+        <script src="js/bower_components/markdown/lib/markdown.js"></script>
+        <script src="js/bower_components/marked/marked.min.js"></script>
+
         <script src="js/app.js"></script>
 
         <script type="text/template" id="github-issues-template">
@@ -110,27 +114,44 @@
         </script>
 
         <script type="text/template" id="github-milestones-template">
-            <div class="panel panel-success">
+            <div class="milestone-container panel panel-success">
                 <div class="panel-heading">
                     <h3 class="panel-title"><%= milestone %></h3>
                 </div>
                 <div class="panel-body">
-                    <div class="overview col-lg-4" style="display:none;"></div>
-                    <% _.each(data, function(data_value, dk) { %>
-                        <div class="col-lg-3">
+                    <% if (overview !== undefined) { %>
+                        <div class="col-xs-6 col-md-6 col-lg-6 milestone-item">
                             <div class="panel panel-info">
                                 <div class="panel-heading">
-                                    <h4 class="panel-title"><%= dk %></h4>
+                                    <h4 class="panel-title"><a href="#labels/Overview/">Overview</a></h4>
+                                </div>
+
+                                <div class="panel-body">
+                                    <div class="row">
+                                        <div class="col-lg-12">
+                                            <%= marked(overview.body) %>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <% } %>
+
+                    <% _.each(data, function(data_value, dk) { %>
+                        <div class="col-xs-6 col-md-3 col-lg-3 milestone-item">
+                            <div class="panel panel-info">
+                                <div class="panel-heading">
+                                    <h4 class="panel-title"><a href="#labels/<%= dk %>/"><%= dk %></a></h4>
                                 </div>
 
                                 <div class="panel-body">
                                     <% _.each(data_value, function(issues_value, dk) { %>
                                         <div class="row">
-                                            <div class="col-lg-6">
+                                            <div class="col-lg-8">
                                                 <%= issues_value.attributes.title %>
                                             </div>
 
-                                            <div class="col-lg-6">
+                                            <div class="col-lg-4">
                                                 <img src="<%= issues_value.attributes.assignee.avatar_url %>" alt="" height="50px;">
                                             </div>
                                         </div>
@@ -139,24 +160,6 @@
                             </div>
                         </div>
                     <% }); %>
-                </div>
-            </div>
-        </script>
-
-        <script type="text/template" id="github-milestones-overview-template">
-            <div class="col-lg-4">
-                <div class="panel panel-info">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">Overview</h4>
-                    </div>
-
-                    <div class="panel-body">
-                        <div class="row">
-                            <div class="col-lg-12">
-                                <%= body %>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </script>

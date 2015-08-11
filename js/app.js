@@ -1,4 +1,5 @@
 var App = {};
+
 App.urls = {
     issues_root: function(state) {
         return "https://api.github.com/repos/newlif/teams/issues?state=" + state;
@@ -76,7 +77,9 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
 
                 labels = _.sortBy(labels, function(element) {
                     var rank = {
-                        "Overview": 1
+                        "Overview": 1,
+                        "Setup": 2,
+                        "Welcome": 3
                     };
                     return rank[element.name];
                 });
@@ -149,7 +152,6 @@ App.AppView = Backbone.View.extend({
         self.issues_template = _.template($("#github-issues-template").html());
         self.comments_template = _.template($("#github-issue-comments-template").html());
         self.milestones_template = _.template($("#github-milestones-template").html());
-        self.overview_template = _.template($("#github-milestones-overview-template").html());
         return this;
     },
 
@@ -188,19 +190,18 @@ App.AppView = Backbone.View.extend({
 
         self.$("#workspace-items").html("");
         _.each(milestones, function(data, index) {
-            var overview_template;
+            var overview_data, $tmpl;
 
             if (_.has(data.data, "Overview")) {
-                overview_template = self.overview_template(data.data["Overview"][0].attributes);
+                overview_data = data.data["Overview"][0].attributes;
                 delete data.data["Overview"];
             }
-            milestones_template = self.milestones_template(data);
+            _.extend(data, {"overview": overview_data});
 
-            if (overview_template) {
-                milestones_template = $(milestones_template).prepend(overview_template);
-            }
+            $tmpl = $(self.milestones_template(data));
 
-            self.$("#workspace-items").append(milestones_template);
+            self.$("#workspace-items").append($tmpl);
+
         });
     },
 
