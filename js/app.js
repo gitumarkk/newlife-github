@@ -74,6 +74,13 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
                     grouped_label_dict = {},
                     labels = self.git_labels();
 
+                labels = _.sortBy(labels, function(element) {
+                    var rank = {
+                        "Overview": 1
+                    };
+                    return rank[element.name];
+                });
+
                 // For each label filter the models according to the label and add the label as a key
                 // to the output dictionary
                 _.each(labels, function(label) {
@@ -142,6 +149,7 @@ App.AppView = Backbone.View.extend({
         self.issues_template = _.template($("#github-issues-template").html());
         self.comments_template = _.template($("#github-issue-comments-template").html());
         self.milestones_template = _.template($("#github-milestones-template").html());
+        self.overview_template = _.template($("#github-milestones-overview-template").html());
         return this;
     },
 
@@ -179,8 +187,20 @@ App.AppView = Backbone.View.extend({
             milestones = self.git_collection.groupByMilestones();
 
         self.$("#workspace-items").html("");
-        _.each(milestones, function(value, key) {
-            self.$("#workspace-items").append(self.milestones_template(value));
+        _.each(milestones, function(data, index) {
+            var overview_template;
+
+            if (_.has(data.data, "Overview")) {
+                overview_template = self.overview_template(data.data["Overview"][0].attributes);
+                delete data.data["Overview"];
+            }
+            milestones_template = self.milestones_template(data);
+
+            if (overview_template) {
+                milestones_template = $(milestones_template).prepend(overview_template);
+            }
+
+            self.$("#workspace-items").append(milestones_template);
         });
     },
 
