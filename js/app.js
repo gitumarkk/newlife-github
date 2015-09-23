@@ -22,7 +22,7 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
     },
 
     // Parse the data to filter out issues with closed milestones, seems api
-    // doesn;t support issues filtering on open milestones. Not ideal as gets
+    // doesn't support issues filtering on open milestones. Not ideal as gets
     // all data but should work for now.
     parse: function(data) {
         var self = this;
