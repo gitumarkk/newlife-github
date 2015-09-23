@@ -21,6 +21,14 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
         return Date.parse(m.get("milestone").due_on);
     },
 
+    // Parse the data to filter out issues with closed milestones, seems api
+    // doesn;t support issues filtering on open milestones. Not ideal as gets
+    // all data but should work for now.
+    parse: function(data) {
+        var self = this;
+        return _.filter(data, function(issue) { return issue.milestone.state === "open"});
+    },
+
     helper_labels: function(model_items) {
         var self = this;
         // flatten transforms  [[1], [2]] to [1, 2]
