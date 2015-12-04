@@ -15,10 +15,26 @@ App.GithubIssuesModel = Backbone.Model.extend({
 
 App.GithubIssuesCollection = Backbone.Collection.extend({
     model: App.GithubIssuesModel,
-    url: App.urls.issues_root("open"),
+    // url: App.urls.issues_root("open"),
+
+    initialize: function(options) {
+        var self = this;
+        self.instanceUrl = options.url;
+        self.view = options.view;
+        return self;
+    },
+
+    url: function() {
+        var self = this;
+        return self.instanceUrl;
+    },
+
     comparator: function(m) {
         var self = this;
-        return Date.parse(m.get("milestone").due_on);
+        // For some reason it parses the options passed in
+        if (m.get("milestone")) {
+            return Date.parse(m.get("milestone").due_on);
+        }
     },
 
     // Parse the data to filter out issues with closed milestones, seems api
@@ -26,7 +42,12 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
     // all data but should work for now.
     parse: function(data) {
         var self = this;
-        return _.filter(data, function(issue) { return issue.milestone.state === "open"});
+
+        if (self.view === "calendar") return data;
+
+        return _.filter(data, function(issue) {
+            return issue.milestone.state === "open";
+        });
     },
 
     helper_labels: function(model_items) {
@@ -69,7 +90,9 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
 
     groupByMilestones: function() {
         var self = this,
-            models = self.models,
+
+            // FIltering out the options url
+            models = _.filter(self.models, function(model) {return model.attributes.milestone !== undefined; });
 
             // Grouping the models by the milestone title
             grouped =  _.groupBy(models, function(model) {
@@ -285,6 +308,46 @@ App.AppView = Backbone.View.extend({
     },
 });
 
+// CALENDER VIEW
+App.CalendarView = Backbone.View.extend({
+    el: "#workspace-calendar",
+    git_comment_collection: undefined,
+    events: {
+    },
+
+    /**
+    * Initializes the workspace
+    * @param {Object} options - A hashmap containing state to initialize the app with
+    */
+    initialize: function(options) {
+        var self = this;
+        // _.bindAll(
+        //     self);
+        self.git_collection = options.git_collection;
+
+        self.calendar_template = _.template($("#github-calendar-template").html());
+        return this;
+    },
+
+    /** Render calnder after fetching github data */
+    renderBaseView: function() {
+        var self = this,
+            titles = [],
+            entries = self.git_collection.groupByMilestones();
+
+        if (entries.length !== 0) {
+            titles = _.map(entries[0].data, function(v, k) {
+                return k;
+            });
+        }
+
+        self.$("#workspace-items").html(self.calendar_template({
+            entries: entries,
+            titles: titles
+        }));
+    },
+});
+
 App.AppRouter = Backbone.Router.extend({
     routes: {
         "": "renderBaseView",
@@ -294,12 +357,32 @@ App.AppRouter = Backbone.Router.extend({
     initialize: function(options) {
         var self = this;
         self.collection_fetched = undefined;
-        self.git_collection = new App.GithubIssuesCollection();
+
+        var app_options = {};
+
+        if ($("#workspace").length !== 0) {
+            app_options.url = App.urls.issues_root("open");
+
+        } else {
+            app_options.url = App.urls.issues_root("all");
+            app_options.view = "calendar";
+
+        }
+
+        self.git_collection = new App.GithubIssuesCollection(app_options);
+
         self.fetch_collection = self.git_collection.fetch();
 
-        self.app = new App.AppView({
-            git_collection: self.git_collection
-        });
+        if ($("#workspace").length !== 0) {
+            self.app = new App.AppView({
+                git_collection: self.git_collection
+            });
+
+        } else {
+            self.app = new App.CalendarView({
+                git_collection: self.git_collection,
+            });
+        }
     },
 
     renderBaseView: function() {
