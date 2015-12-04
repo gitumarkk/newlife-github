@@ -104,14 +104,30 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
                 var temp_value,
                     output_dict = {},
                     grouped_label_dict = {},
-                    labels = self.git_labels();
+                    labels = self.git_labels(),
+                    rank = {};
 
-                labels = _.sortBy(labels, function(element) {
-                    var rank = {
+                if (self.view === "calendar") {
+                    rank = {
+                        "Setup": 1,
+                        "Sound": 2,
+                        "Welcome": 3,
+                        "Anchor": 4,
+                        "Worship": 5,
+                        "Announce": 6,
+                        "Preach": 7
+                    };
+
+                } else {
+                    rank = {
                         "Overview": 1,
                         "Setup": 2,
                         "Welcome": 3
                     };
+
+                }
+
+                labels = _.sortBy(labels, function(element) {
                     return rank[element.name];
                 });
 
