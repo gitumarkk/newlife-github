@@ -115,7 +115,8 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
                         "Anchor": 4,
                         "Worship": 5,
                         "Announce": 6,
-                        "Preach": 7
+                        "Kids": 7,
+                        "Preach": 8
                     };
 
                 } else {
@@ -359,6 +360,23 @@ App.CalendarView = Backbone.View.extend({
                 });
             }).flatten().uniq().value();
         }
+
+        var sortBy = {
+            "Setup": 1,
+            "Sound": 2,
+            "Welcome": 3,
+            "Anchor": 4,
+            "Worship": 5,
+            "Announce": 6,
+            "Kids": 7,
+            "Preach": 8,
+            "Ministry": 9,
+            "Food": 10
+        };
+
+        titles = _.sortBy(titles, function(title) {
+            return sortBy[title];
+        });
 
         // Converting data structure for the data entries to have the same length
         processedEntries = _.map(entries, function(entry) {
