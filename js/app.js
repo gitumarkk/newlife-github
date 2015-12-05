@@ -349,16 +349,50 @@ App.CalendarView = Backbone.View.extend({
     renderBaseView: function() {
         var self = this,
             titles = [],
+            processedEntries = [],
             entries = self.git_collection.groupByMilestones();
 
         if (entries.length !== 0) {
-            titles = _.map(entries[0].data, function(v, k) {
-                return k;
-            });
+            titles = _.chain(entries).map(function(entry) {
+                return _.map(entry.data, function(v, k) {
+                    return k;
+                });
+            }).flatten().uniq().value();
         }
 
+        // Converting data structure for the data entries to have the same length
+        processedEntries = _.map(entries, function(entry) {
+            var output = [];
+            var date_now = moment().toDate();
+
+            _.each(titles, function(title) {
+                var temp = {};
+                var attr = _.find(entry.data, function(v, k) {
+                    return k === title;
+                });
+
+                if (attr) {
+                    // Splitting the title and getting the person's name
+                    name_title = _.last(attr[0].attributes.title.split("-"));
+
+                } else {
+                    name_title = "-";
+                }
+
+                output.push({key: title, value: name_title});
+            });
+
+            var past = date_now > moment(entry.milestone).toDate();
+
+            return {
+                date: entry.milestone,
+                data: output,
+                style: past === true ? "background:#B8B8B8;" : ""
+            };
+        });
+
         self.$("#workspace-items").html(self.calendar_template({
-            entries: entries,
+            entries: processedEntries,
             titles: titles
         }));
     },
