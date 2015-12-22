@@ -109,14 +109,15 @@ App.GithubIssuesCollection = Backbone.Collection.extend({
 
                 if (self.view === "calendar") {
                     rank = {
-                        "Setup": 1,
-                        "Sound": 2,
-                        "Welcome": 3,
-                        "Anchor": 4,
-                        "Worship": 5,
-                        "Announce": 6,
-                        "Kids": 7,
-                        "Preach": 8
+                        "Overview": 1,
+                        "Setup": 2,
+                        "Sound": 3,
+                        "Welcome": 4,
+                        "Anchor": 5,
+                        "Worship": 6,
+                        "Announce": 7,
+                        "Kids": 8,
+                        "Preach": 9
                     };
 
                 } else {
@@ -184,8 +185,9 @@ App.AppView = Backbone.View.extend({
     events: {
         "click .issues-nav a": "navigateLabelDetail",
         "click .view-issue": "viewIssueComment",
-        "click #week-view": "navigateWeek",
-        "click #label-view": "navigateLabel"
+        "click #week-view": "navigateList",
+        "click #label-view": "navigateLabel",
+        "click #calendar-view": "navigateCalendar"
     },
     initialize: function(options) {
         var self = this;
@@ -200,14 +202,22 @@ App.AppView = Backbone.View.extend({
         self.issues_template = _.template($("#github-issues-template").html());
         self.comments_template = _.template($("#github-issue-comments-template").html());
         self.milestones_template = _.template($("#github-milestones-template").html());
+        self.calendar_template = _.template($("#github-calendar-template").html());
         return this;
     },
 
-    navigateWeek: function(ev) {
+    navigateCalendar: function(ev) {
         ev.preventDefault();
 
         var self = this;
         Backbone.history.navigate("", {trigger: true});
+    },
+
+    navigateList: function(ev) {
+        ev.preventDefault();
+
+        var self = this;
+        Backbone.history.navigate("list/", {trigger: true});
     },
 
     navigateLabel: function(ev) {
@@ -232,9 +242,106 @@ App.AppView = Backbone.View.extend({
 
     },
 
-    renderBaseView: function() {
+    /** Render calendar after fetching github data */
+    renderCalendarView: function() {
+        var self = this,
+            titles = [],
+            processedEntries = [],
+            entries = self.git_collection.groupByMilestones();
+
+        self.$("#nav-menu").hide();
+
+        if (entries.length !== 0) {
+            titles = _.chain(entries).map(function(entry) {
+                return _.map(entry.data, function(v, k) {
+                    return k;
+                });
+            }).flatten().uniq().value();
+        }
+
+        var sortBy = {
+            "Overview": 1,
+            "Setup": 2,
+            "Sound": 3,
+            "Welcome": 4,
+            "Anchor": 5,
+            "Worship": 6,
+            "Announce": 7,
+            "Kids": 8,
+            "Preach": 9,
+            "Ministry": 10,
+            "Food": 11
+        };
+
+        titles = _.sortBy(titles, function(title) {
+            return sortBy[title];
+        });
+
+        // Converting data structure for the data entries to have the same length
+        processedEntries = _.map(entries, function(entry) {
+            var output = [];
+            var date_now = moment().toDate();
+            var milestoneUrl = "";
+
+            _.each(titles, function(title) {
+                var temp = {};
+                var attr = _.find(entry.data, function(v, k) {
+                    return k === title;
+                });
+
+                if (attr) {
+                    // Splitting the title and getting the person's name
+                    var nameTitle = attr[0].attributes.title;
+                    var split_name_array = nameTitle.split("-");
+
+                    if (split_name_array.length === 1) {
+                        name_title = _.last(split_name_array);
+
+                    } else {  // Assumes there are extra dashes in the name
+                        split_name_array.shift();  // remove first element
+                        name_title = split_name_array.join(" - ");
+                    }
+
+                    if (nameTitle.toLowerCase().indexOf("overview") !== -1) {
+                        name_title = attr[0].attributes.body;
+                    }
+
+                    var milestone = attr[0].attributes.milestone;
+
+                    if (milestone) {
+                        milestoneUrl = milestone.html_url;
+                    }
+
+                } else {
+                    name_title = "-";
+                }
+
+                output.push({
+                    key: title,
+                    value: name_title.trim()
+                });
+            });
+
+            var past = date_now > moment(entry.milestone).toDate();
+
+            return {
+                date: {date: moment(entry.milestone).format("MMM-DD"), milestoneUrl: milestoneUrl},
+                data: output,
+                style: past === true ? "background:#C0C0C0;" : ""
+            };
+        });
+
+        self.$("#workspace-items").html(self.calendar_template({
+            entries: processedEntries,
+            titles: titles
+        }));
+    },
+
+    renderListView: function() {
         var self = this,
             milestones = self.git_collection.groupByMilestones();
+
+        self.$("#nav-menu").show();
 
         self.$("#workspace-items").html("");
         _.each(milestones, function(data, index) {
@@ -261,6 +368,8 @@ App.AppView = Backbone.View.extend({
         var self = this,
             labels = self.git_collection.git_labels();
 
+        self.$("#nav-menu").show();
+
         self.$("#workspace-items").html(self.issues_template({
             issues: self.git_collection.toJSON(),
             labels: labels
@@ -270,6 +379,8 @@ App.AppView = Backbone.View.extend({
     renderLabelDetail: function(label) {
         var self = this,
             labels = self.git_collection.git_labels();
+
+        self.$("#nav-menu").show();
 
         self.$("#issue-nav li").removeClass("active");
 
@@ -291,6 +402,9 @@ App.AppView = Backbone.View.extend({
         var self = this, $element;
         ev.preventDefault();
         $element = $(ev.currentTarget);
+
+        self.$("#nav-menu").show();
+
         self.git_comment_collection = new App.GithubCommentsCollection({
             url: $element.data("comments-url")
         });
@@ -303,6 +417,9 @@ App.AppView = Backbone.View.extend({
     renderComments: function() {
         var self = this, comments;
         comments = self.git_comment_collection.toJSON();
+
+        self.$("#nav-menu").show();
+
         _.each(comments, function(comment) {
             var issue = self.git_collection.findWhere({
                 url: comment.issue_url
@@ -325,145 +442,58 @@ App.AppView = Backbone.View.extend({
     },
 });
 
-// CALENDER VIEW
-App.CalendarView = Backbone.View.extend({
-    el: "#workspace-calendar",
-    git_comment_collection: undefined,
-    events: {
-    },
-
-    /**
-    * Initializes the workspace
-    * @param {Object} options - A hashmap containing state to initialize the app with
-    */
-    initialize: function(options) {
-        var self = this;
-        // _.bindAll(
-        //     self);
-        self.git_collection = options.git_collection;
-
-        self.calendar_template = _.template($("#github-calendar-template").html());
-        return this;
-    },
-
-    /** Render calnder after fetching github data */
-    renderBaseView: function() {
-        var self = this,
-            titles = [],
-            processedEntries = [],
-            entries = self.git_collection.groupByMilestones();
-
-        if (entries.length !== 0) {
-            titles = _.chain(entries).map(function(entry) {
-                return _.map(entry.data, function(v, k) {
-                    return k;
-                });
-            }).flatten().uniq().value();
-        }
-
-        var sortBy = {
-            "Setup": 1,
-            "Sound": 2,
-            "Welcome": 3,
-            "Anchor": 4,
-            "Worship": 5,
-            "Announce": 6,
-            "Kids": 7,
-            "Preach": 8,
-            "Ministry": 9,
-            "Food": 10
-        };
-
-        titles = _.sortBy(titles, function(title) {
-            return sortBy[title];
-        });
-
-        // Converting data structure for the data entries to have the same length
-        processedEntries = _.map(entries, function(entry) {
-            var output = [];
-            var date_now = moment().toDate();
-
-            _.each(titles, function(title) {
-                var temp = {};
-                var attr = _.find(entry.data, function(v, k) {
-                    return k === title;
-                });
-
-                if (attr) {
-                    // Splitting the title and getting the person's name
-                    name_title = _.last(attr[0].attributes.title.split("-"));
-
-                } else {
-                    name_title = "-";
-                }
-
-                output.push({key: title, value: name_title});
-            });
-
-            var past = date_now > moment(entry.milestone).toDate();
-
-            return {
-                date: entry.milestone,
-                data: output,
-                style: past === true ? "background:#B8B8B8;" : ""
-            };
-        });
-
-        self.$("#workspace-items").html(self.calendar_template({
-            entries: processedEntries,
-            titles: titles
-        }));
-    },
-});
-
 App.AppRouter = Backbone.Router.extend({
     routes: {
-        "": "renderBaseView",
+        "": "renderCalendarView",
+        "list/": "renderListView",
         "labels/": "renderLabels",
         "labels/:label/": "renderLabelDetail"
     },
+
     initialize: function(options) {
         var self = this;
         self.collection_fetched = undefined;
+    },
 
-        var app_options = {};
+    renderCalendarView: function() {
+        var self = this,
+            app_options = {};
 
-        if ($("#workspace").length !== 0) {
-            app_options.url = App.urls.issues_root("open");
-
-        } else {
-            app_options.url = App.urls.issues_root("all");
-            app_options.view = "calendar";
-
-        }
+        app_options.url = App.urls.issues_root("all");
+        app_options.view = "calendar";
 
         self.git_collection = new App.GithubIssuesCollection(app_options);
 
         self.fetch_collection = self.git_collection.fetch();
 
-        if ($("#workspace").length !== 0) {
-            self.app = new App.AppView({
-                git_collection: self.git_collection
-            });
+        self.app = new App.AppView({
+            git_collection: self.git_collection,
+        });
 
-        } else {
-            self.app = new App.CalendarView({
-                git_collection: self.git_collection,
-            });
-        }
+        self.fetch_collection.done(function() {
+            self.app.renderCalendarView();
+            self.collection_fetched = true;
+        });
     },
 
-    renderBaseView: function() {
-        var self = this;
+    renderListView: function() {
+        var self = this,
+            app_options = {};
 
-        if (self.collection_fetched) {
-            self.app.renderBaseView();
-        } else {
-            self.fetch_collection.done(function() {
-                self.app.renderBaseView();
-                self.collection_fetched = true;
-            });
-        }
+        app_options.url = App.urls.issues_root("open");
+
+        self.git_collection = new App.GithubIssuesCollection(app_options);
+
+        self.fetch_collection = self.git_collection.fetch();
+
+        self.app = new App.AppView({
+            git_collection: self.git_collection
+        });
+
+        self.fetch_collection.done(function() {
+            self.app.renderListView();
+            self.collection_fetched = true;
+        });
     },
 
     renderLabels: function() {
@@ -471,7 +501,20 @@ App.AppRouter = Backbone.Router.extend({
 
         if (self.collection_fetched) {
             self.app.renderLabels();
+
         } else {
+            var app_options = {};
+
+            app_options.url = App.urls.issues_root("open");
+
+            self.git_collection = new App.GithubIssuesCollection(app_options);
+
+            self.fetch_collection = self.git_collection.fetch();
+
+            self.app = new App.AppView({
+                git_collection: self.git_collection
+            });
+
             self.fetch_collection.done(function() {
                 self.app.renderLabels();
                 self.collection_fetched = true;
@@ -484,9 +527,22 @@ App.AppRouter = Backbone.Router.extend({
 
         if (self.collection_fetched) {
             self.app.renderLabelDetail(label);
+
         } else {
+            var app_options = {};
+
+            app_options.url = App.urls.issues_root("open");
+
+            self.git_collection = new App.GithubIssuesCollection(app_options);
+
+            self.fetch_collection = self.git_collection.fetch();
+
+            self.app = new App.AppView({
+                git_collection: self.git_collection
+            });
+
             self.fetch_collection.done(function() {
-                self.app.renderLabelDetail(label);
+                self.app.renderLabelDetail(label),
                 self.collection_fetched = true;
             });
         }
@@ -495,7 +551,6 @@ App.AppRouter = Backbone.Router.extend({
 
 
 $(document).ready(function() {
-    // new App.AppView({});
     new App.AppRouter({});
     Backbone.history.start({pushstate: true});
 });
