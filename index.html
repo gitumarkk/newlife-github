@@ -22,28 +22,27 @@
         <!-- Add your site or application content here -->
         <div id="workspace" class="container">
             <div class="row">
-                <div class="col-lg-12">
-                    <ul id="main-nav" class="nav nav-tabs">
-                        <li role="presentation" class="main-nav col-xs-6 col-md-6 col-lg-6">
-                            <a id="week-view" href="#" data-label="default" class="active">Week</a>
-                        </li>
-                        <li role="presentation" class="main-nav col-xs-6 col-md-6 col-lg-6">
-                            <a id="label-view" href="#" data-label="default" class="">Duties</a>
-                        </li>
-                    </ul>
+                <div id="nav-menu" class="row" style="display:none;" class="col-lg-12">
+                    <nav class="navbar navbar-default navbar-static-top" class="col-md-12 col-lg-12">
+                        <ul class="nav" class="col-md-12 col-lg-12">
+                            <li class="col-xs-4 col-md-4 col-lg-4">
+                                <a id="calendar-view" href="#" data-label="default" class="">Calendar</a>
+                            </li>
 
-                    <div id="workspace-items" class="container"></div>
+                            <li class="col-xs-4 col-md-4 col-lg-4">
+                                <a id="week-view" href="#" data-label="default" class="">Week</a>
+                            </li>
+
+                            <li class="col-xs-4 col-md-4 col-lg-4">
+                                <a id="label-view" href="#" data-label="default">Duties</a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
+
+                <div id="workspace-items" class="container col-lg-12"></div>
             </div>
         </div>
-
-
-
-        <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-        <script src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.2.1/backbone-min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.3/moment.min.js"></script>-->
 
         <script src="js/bower_components/jquery/dist/jquery.min.js"></script>
         <script src="js/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
@@ -51,7 +50,6 @@
         <script src="js/bower_components/backbone/backbone-min.js"></script>
         <script src="js/bower_components/moment/min/moment.min.js"></script>
         <script src="js/bower_components/marked/marked.min.js"></script>
-
         <script src="js/app.js?v=0.1"></script>
 
         <script type="text/template" id="github-issues-template">
@@ -186,6 +184,30 @@
                                     role="button"
                                     target="_blank">View On Github</a>
                             </td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </script>
+
+        <script type="text/template" id="github-calendar-template">
+            <table class="table table-striped" style="font-size:11px;">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <% _.each(titles, function(title) { %>
+                            <th><a href="#labels/<%= title %>/"><%= title %></a></th>
+                        <% }); %>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% _.each(entries, function(entry) { %>
+                        <tr style="<%= entry.style %>">
+                            <td><a href="<%= entry.date.milestoneUrl %>"><%= entry.date.date %></a></td>
+
+                            <% _.each(entry.data, function(data) { %>
+                                <td style="max-width:100px"><%= data.value %></td>
+                            <% }); %>
                         </tr>
                     <% }); %>
                 </tbody>
